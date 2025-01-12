@@ -31,11 +31,23 @@ export class AuthService {
   }
 
   async login(
-    user: User,
+    username: string,
+    password: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
-    const payload = { username: user.username, sub: user.id };
+    // Find user by username
+    const user = await this.usersService.findOneByUsername(username);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-    // Generate tokens
+    // Validate password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Generate JWT tokens
+    const payload = { username: user.username, sub: user.id };
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET,
       expiresIn: process.env.JWT_EXPIRATION || '1h',
@@ -45,7 +57,7 @@ export class AuthService {
       expiresIn: process.env.JWT_REFRESH_EXPIRATION || '7d',
     });
 
-    // Save the refresh token in the user entity
+    // Save refresh token to the database
     await this.usersService.update(user.id, { refreshToken });
 
     return {
