@@ -1,9 +1,12 @@
+import { HexTile } from 'src/hex-grid/entities/hex-tile.entity';
+
 import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 
 @Entity()
@@ -34,4 +37,7 @@ export class User {
 
   @Column({ nullable: true })
   resetToken: string;
+
+  @OneToMany(() => HexTile, (tile) => tile.owner)
+  claimedTiles: HexTile[]; // Tiles claimed by the player
 }
