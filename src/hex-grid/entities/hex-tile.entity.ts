@@ -26,7 +26,6 @@ export class HexTile {
   zoneType: string; // 'faction', 'contested', 'neutral'
   @ManyToOne(() => HexGrid, (grid) => grid.tiles)
   hexGrid: HexGrid;
-  @OneToOne(() => Village, (village) => village.hexTile, { nullable: true })
-  @JoinColumn()
-  village: Village; // The village located on this tile
+  @OneToOne(() => Village, (village) => village.hexTileId)
+  village: Village;
 }

@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { HexGridModule } from './hex-grid/hex-grid.module';
 import { VillagesModule } from './villages/villages.module';
 import { RacesModule } from './races/races.module';
+import { ResourcesModule } from './resources/resources.module';
 
 @Module({
   imports: [
@@ -42,6 +43,10 @@ import { RacesModule } from './races/races.module';
     VillagesModule,
 
     RacesModule,
+
+    ResourcesModule,
+
+    
   ],
   controllers: [AppController],
   providers: [AppService],
