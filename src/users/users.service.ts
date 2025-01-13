@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import { Race } from '../races/entities/race.entity';
+import { HexTile } from '../hex-grid/entities/hex-tile.entity';
 
 @Injectable()
 export class UsersService {
@@ -13,6 +15,10 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Race)
+    private readonly raceRepository: Repository<Race>,
+    @InjectRepository(HexTile)
+    private readonly hexTileRepository: Repository<HexTile>,
   ) {}
 
   // Find a user by username
@@ -67,7 +73,7 @@ export class UsersService {
   }
 
   // Find a user by ID
-  async findOne(id: number): Promise<User> {
+  async findOne(id: string): Promise<User> {
     this.logger.log(`Retrieving user with ID: ${id}`);
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -78,7 +84,7 @@ export class UsersService {
   }
 
   // Update a user's details
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     this.logger.log(`Updating user with ID: ${id}`);
     const user = await this.findOne(id); // Ensure user exists
 
@@ -100,7 +106,7 @@ export class UsersService {
   }
 
   // Remove a user
-  async remove(id: number): Promise<string> {
+  async remove(id: string): Promise<string> {
     this.logger.log(`Removing user with ID: ${id}`);
     const user = await this.findOne(id); // Ensure user exists
     try {
@@ -112,4 +118,43 @@ export class UsersService {
       throw error;
     }
   }
+
+  async assignRace(userId: string, raceId: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const race = await this.raceRepository.findOne({ where: { id: raceId } });
+
+    if (!user) throw new Error('User not found.');
+    if (!race) throw new Error('Race not found.');
+
+    user.race = race;
+    return this.userRepository.save(user);
+  }
+  async spawnPlayer(userId: string, faction: string): Promise<HexTile> {
+    // Fetch available tiles in the faction's zone
+    const availableTiles = await this.hexTileRepository.find({
+      where: { faction, zoneType: 'faction', owner: null },
+    });
+  
+    if (!availableTiles.length) {
+      // If no tiles are available, log and handle fallback
+      console.error(`No available tiles in the ${faction} zone.`);
+      throw new Error('Faction zone is overcrowded. Please try again later.');
+    }
+  
+    // Randomly select a tile from the available list
+    const randomIndex = Math.floor(Math.random() * availableTiles.length);
+    const spawnTile = availableTiles[randomIndex];
+  
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+  if (!user) {
+    throw new Error('User not found.');
+  }  // Assign the user entity to the tile's owner field
+  spawnTile.owner = user;
+
+    // Save and return the updated tile
+    return this.hexTileRepository.save(spawnTile);
+  }
+  
+  
+  
 }

@@ -14,26 +14,55 @@ export class HexGridService {
   @InjectRepository(HexGrid)
   private readonly gridRepository: Repository<HexGrid>,
   ) {}
-  create(createHexGridDto: CreateHexGridDto) {
-    this.logger.log(createHexGridDto);
-    return 'This action adds a new hexGrid';
+  
+  async generateGrid(name: string, size: number): Promise<HexGrid> {
+    const hexGrid = this.gridRepository.create({ name, size });
+    const savedGrid = await this.gridRepository.save(hexGrid);
+  
+    const tiles: HexTile[] = [];
+    for (let q = -size; q <= size; q++) {
+      for (let r = Math.max(-size, -q - size); r <= Math.min(size, -q + size); r++) {
+        const tileType = this.getZoneType(q, r);
+        const tileFaction = this.getFactionByZone(tileType);
+  
+        const tile = this.hexTileRepository.create({
+          q,
+          r,
+          terrain: this.randomTerrain(),
+          hexGrid: savedGrid,
+          faction: tileFaction,
+          zoneType: tileType,
+        });
+        tiles.push(tile);
+      }
+    }
+  
+    await this.hexTileRepository.save(tiles);
+    return savedGrid;
+  }
+  
+  // Determine zone type by position
+  private getZoneType(q: number, r: number): string {
+    const distanceFromCenter = Math.sqrt(q * q + r * r);
+    if (distanceFromCenter < 5) return 'faction';
+    if (distanceFromCenter < 10) return 'contested';
+    return 'neutral';
+  }
+  
+  // Assign faction to zones
+  private getFactionByZone(zoneType: string): string | null {
+    if (zoneType === 'faction') {
+      const factions = ['Orc', 'Human', 'Elf', 'Undead'];
+      return factions[Math.floor(Math.random() * factions.length)];
+    }
+    return null; // Neutral for non-faction zones
+  }
+  
+
+  async findAll(): Promise<HexGrid[]> {
+    return this.gridRepository.find({ relations: ['tiles'] });
   }
 
-  findAll() {
-    return `This action returns all hexGrid`;
-  }
-  async getTiles(
-    hexGridId: string,
-    page: number,
-    limit: number,
-  ): Promise<HexTile[]> {
-    const offset = (page - 1) * limit;
-    return this.hexTileRepository.find({
-      where: { hexGrid: { id: hexGridId } },
-      skip: offset,
-      take: limit,
-    });
-  }
   async getGridById(gridId: string): Promise<HexGrid> {
     const grid = await this.gridRepository.findOne({
       where: { id: gridId },
@@ -45,13 +74,23 @@ export class HexGridService {
     return grid;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} hexGrid`;
+  async getTiles(gridId: string, page: number, limit: number): Promise<HexTile[]> {
+    const offset = (page - 1) * limit;
+    return this.hexTileRepository.find({
+      where: { hexGrid: { id: gridId } },
+      skip: offset,
+      take: limit,
+    });
   }
 
-  update(id: number, updateHexGridDto: UpdateHexGridDto) {
-    this.logger.log(updateHexGridDto);
-    return `This action updates a #${id} hexGrid`;
+  async update(gridId: string, updateHexGridDto: Record<string, any>): Promise<HexGrid> {
+    const grid = await this.gridRepository.findOne({ where: { id: gridId } });
+    if (!grid) {
+      throw new Error('Grid not found.');
+    }
+
+    Object.assign(grid, updateHexGridDto);
+    return this.gridRepository.save(grid);
   }
 
   async deleteGrid(gridId: string): Promise<void> {
@@ -62,39 +101,11 @@ export class HexGridService {
     await this.gridRepository.remove(grid);
   }
 
-  async generateGrid(name: string, size: number): Promise<HexGrid> {
-    // Ensure no grid with the same name exists
-    const existingGrid = await this.gridRepository.findOne({ where: { name } });
-    if (existingGrid) {
-      throw new Error('A grid with this name already exists.');
-    }
-  
-    // Create a new grid
-    const hexGrid = this.gridRepository.create({ name, size });
-  
-    // Generate tiles for the grid
-    const tiles: HexTile[] = [];
-    for (let q = -size; q <= size; q++) {
-      for (let r = Math.max(-size, -q - size); r <= Math.min(size, -q + size); r++) {
-        const tile = this.hexTileRepository.create({
-          q,
-          r,
-          terrain: this.randomTerrain(),
-          hexGrid, // Associate with the parent grid
-        });
-        tiles.push(tile);
-      }
-    }
-  
-    // Save tiles and grid
-    hexGrid.tiles = tiles;
-    return this.gridRepository.save(hexGrid);
-  }
-  
   private randomTerrain(): string {
     const terrains = ['grassland', 'forest', 'mountain', 'water'];
     return terrains[Math.floor(Math.random() * terrains.length)];
   }
+
   async getAdjacentTilesFromDB(q: number, r: number): Promise<HexTile[]> {
     const directions = [
       [+1, 0],
@@ -114,6 +125,4 @@ export class HexGridService {
       where: adjacentCoords,
     });
   }
-
-
 }

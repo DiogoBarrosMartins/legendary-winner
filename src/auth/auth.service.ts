@@ -119,7 +119,7 @@ export class AuthService {
     refreshToken: string,
   ): Promise<{ access_token: string }> {
     // Verify the refresh token
-    let payload: { username: string; sub: number };
+    let payload: { username: string; sub: string };
     try {
       payload = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET,

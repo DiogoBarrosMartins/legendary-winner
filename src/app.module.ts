@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { HexGridModule } from './hex-grid/hex-grid.module';
+import { VillagesModule } from './villages/villages.module';
+import { RacesModule } from './races/races.module';
 
 @Module({
   imports: [
@@ -36,6 +38,10 @@ import { HexGridModule } from './hex-grid/hex-grid.module';
     UsersModule,
 
     HexGridModule,
+
+    VillagesModule,
+
+    RacesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
