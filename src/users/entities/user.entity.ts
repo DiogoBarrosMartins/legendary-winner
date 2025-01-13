@@ -1,4 +1,4 @@
-import { HexTile } from 'src/hex-grid/entities/hex-tile.entity';
+import { HexTile } from '../../hex-grid/entities/hex-tile.entity';
 
 import {
   Entity,

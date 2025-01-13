@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: backend
     ports:
       - "3000:3000"
@@ -13,8 +13,14 @@ services:
       - DATABASE_USERNAME=admin
       - DATABASE_PASSWORD=password
       - DATABASE_NAME=legendary_winner
+    volumes:
+      - .:/app # Mount your local code into the container
+      - /app/node_modules # Prevent overwriting node_modules in the container
+    working_dir: /app
     depends_on:
       - database
+    command: npm run start:dev
+    restart: always
 
   database:
     image: postgres:14
@@ -27,6 +33,7 @@ services:
       POSTGRES_DB: legendary_winner
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
 
 volumes:
   postgres_data:

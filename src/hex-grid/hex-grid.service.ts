@@ -8,10 +8,11 @@ import { HexGrid } from './entities/hex-grid.entity';
 @Injectable()
 export class HexGridService {
   logger = new Logger('HexGridService');
-  gridRepository: any;
   constructor(
     @InjectRepository(HexTile)
-    private readonly hexTileRepository: Repository<HexTile>,
+  private readonly hexTileRepository: Repository<HexTile>,
+  @InjectRepository(HexGrid)
+  private readonly gridRepository: Repository<HexGrid>,
   ) {}
   create(createHexGridDto: CreateHexGridDto) {
     this.logger.log(createHexGridDto);
@@ -60,39 +61,40 @@ export class HexGridService {
     }
     await this.gridRepository.remove(grid);
   }
+
   async generateGrid(name: string, size: number): Promise<HexGrid> {
     // Ensure no grid with the same name exists
     const existingGrid = await this.gridRepository.findOne({ where: { name } });
     if (existingGrid) {
       throw new Error('A grid with this name already exists.');
     }
-
+  
     // Create a new grid
-    const grid = this.gridRepository.create({ name, size });
-
+    const hexGrid = this.gridRepository.create({ name, size });
+  
     // Generate tiles for the grid
     const tiles: HexTile[] = [];
     for (let q = -size; q <= size; q++) {
-      for (
-        let r = Math.max(-size, -q - size);
-        r <= Math.min(size, -q + size);
-        r++
-      ) {
+      for (let r = Math.max(-size, -q - size); r <= Math.min(size, -q + size); r++) {
         const tile = this.hexTileRepository.create({
           q,
           r,
           terrain: this.randomTerrain(),
-          grid, // Associate with the parent grid
-        } as Partial<HexTile>); // Use Partial if necessary
+          hexGrid, // Associate with the parent grid
+        });
         tiles.push(tile);
       }
     }
-
+  
     // Save tiles and grid
-    grid.tiles = tiles;
-    return this.gridRepository.save(grid);
+    hexGrid.tiles = tiles;
+    return this.gridRepository.save(hexGrid);
   }
-
+  
+  private randomTerrain(): string {
+    const terrains = ['grassland', 'forest', 'mountain', 'water'];
+    return terrains[Math.floor(Math.random() * terrains.length)];
+  }
   async getAdjacentTilesFromDB(q: number, r: number): Promise<HexTile[]> {
     const directions = [
       [+1, 0],
@@ -113,8 +115,5 @@ export class HexGridService {
     });
   }
 
-  private randomTerrain(): string {
-    const terrains = ['grassland', 'forest', 'mountain', 'water'];
-    return terrains[Math.floor(Math.random() * terrains.length)];
-  }
+
 }
