@@ -17,6 +17,7 @@ export enum TileState {
   OCCUPIED = 'occupied',
   CONTESTED = 'contested',
   FACTION = 'faction',
+  MONSTER = 'monster',
 }
 export type ResourceType = 'wood' | 'clay' | 'iron' | 'grain' | 'gold';
 

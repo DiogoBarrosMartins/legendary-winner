@@ -1,20 +1,18 @@
 export const factions = [
   {
-    id: 'elves',
     name: 'Elves',
-    startingTiles: 30,
-    cityTiles: 6, // Multi-hex cities
-    outpostTiles: 12, // Smaller clusters
-    resourceTiles: 12,
-    spread: 3, // Distance between tiles
+    startingTiles: 60,
+    cityTiles: 12, // Multi-hex cities
+    outpostTiles: 24, // Smaller clusters
+    resourceTiles: 24,
+    spread: 6, // Distance between tiles
   },
   {
-    id: 'orcs',
     name: 'Orcs',
-    startingTiles: 30,
-    cityTiles: 6,
-    outpostTiles: 12,
-    resourceTiles: 12,
+    startingTiles: 60,
+    cityTiles: 12,
+    outpostTiles: 24,
+    resourceTiles: 24,
     spread: 3,
   },
 ];

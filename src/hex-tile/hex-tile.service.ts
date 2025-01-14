@@ -20,6 +20,9 @@ export class HexTileService {
     factionId?: string,
     tileState: TileState = TileState.NEUTRAL,
   ): Promise<HexTile> {
+    console.log(
+      `Creating hex tile at (${q}, ${r}) with factionId: ${factionId}`,
+    );
     const hexTile = this.hexTileRepository.create({
       q,
       r,
@@ -27,14 +30,19 @@ export class HexTileService {
       faction: factionId ? { id: factionId } : null,
     });
 
-    return this.hexTileRepository.save(hexTile);
+    const savedTile = await this.hexTileRepository.save(hexTile);
+    console.log(`Hex tile created:`, savedTile);
+    return savedTile;
   }
 
   async getTile(q: number, r: number): Promise<HexTile> {
+    console.log(`Fetching tile at (${q}, ${r})`);
     const tile = await this.hexTileRepository.findOne({ where: { q, r } });
     if (!tile) {
+      console.error(`Tile at (${q}, ${r}) not found.`);
       throw new NotFoundException(`Tile at (${q}, ${r}) not found.`);
     }
+    console.log(`Tile found:`, tile);
     return tile;
   }
 
@@ -43,133 +51,276 @@ export class HexTileService {
     r: number,
     range: number,
   ): Promise<HexTile[]> {
-    return this.hexTileRepository
+    console.log(`Fetching tiles in range (${q}, ${r}) with range ${range}`);
+    const tiles = await this.hexTileRepository
       .createQueryBuilder('hexTile')
       .where('ABS(hexTile.q - :q) <= :range', { q, range })
       .andWhere('ABS(hexTile.r - :r) <= :range', { r, range })
       .getMany();
+    console.log(`Tiles found:`, tiles);
+    return tiles;
   }
+
   async getFactionTiles(factionId: string): Promise<HexTile[]> {
-    return this.hexTileRepository.find({
+    console.log(`Fetching tiles for factionId: ${factionId}`);
+    const tiles = await this.hexTileRepository.find({
       where: { faction: { id: factionId } },
       relations: ['faction'],
     });
+    console.log(`Faction tiles found:`, tiles);
+    return tiles;
   }
 
   async assignOwner(q: number, r: number, ownerId: string): Promise<HexTile> {
+    console.log(`Assigning owner ${ownerId} to tile at (${q}, ${r})`);
     const tile = await this.getTile(q, r);
     tile.owner.id = ownerId;
-    return this.hexTileRepository.save(tile);
+    const updatedTile = await this.hexTileRepository.save(tile);
+    console.log(`Tile updated with owner:`, updatedTile);
+    return updatedTile;
   }
-  generateMap = async (): Promise<HexTile[]> => {
-    const tiles: HexTile[] = [];
-    const mapSize = 100; // Define overall map size (100x100 hexes)
+  // Method to delete all tiles from the database
+  async deleteAllTiles(): Promise<void> {
+    console.log('Deleting all existing tiles...');
+    await this.hexTileRepository.clear();
+    console.log('All tiles deleted successfully.');
+  }
+  private async seed(): Promise<void> {
+    this.deleteAllTiles();
+    console.log(`Seeding factions into the database.`);
+    const factionsToSeed = [
+      { name: 'Elves', description: 'Graceful beings of the forest' },
+      { name: 'Orcs', description: 'Brutal warriors of the wasteland' },
+    ];
 
-    // Utility: Check if a position is already occupied
-    const isPositionOccupied = (q: number, r: number): boolean =>
-      tiles.some((tile) => tile.q === q && tile.r === r);
+    for (const faction of factionsToSeed) {
+      const exists = await this.factionRepository.findOne({
+        where: { name: faction.name },
+      });
 
-    // Utility: Generate random resource fields
-    const generateResourceFields = (count: number): ResourceType[] =>
-      (['wood', 'clay', 'iron', 'grain'] as ResourceType[])
-        .sort(() => 0.5 - Math.random())
-        .slice(0, count);
-
-    // Generate tiles for each faction
-    for (const faction of factions) {
-      let factionTiles = 0;
-
-      // Generate faction city (multi-hex cluster)
-      const cityCenter = {
-        q: Math.floor(Math.random() * mapSize - mapSize / 2),
-        r: Math.floor(Math.random() * mapSize - mapSize / 2),
-      };
-
-      for (let i = 0; i < faction.cityTiles; i++) {
-        const offsetQ = Math.floor(i / 2);
-        const offsetR = i % 2 === 0 ? offsetQ : -offsetQ;
-
-        if (
-          !isPositionOccupied(cityCenter.q + offsetQ, cityCenter.r + offsetR)
-        ) {
-          tiles.push(
-            this.hexTileRepository.create({
-              q: cityCenter.q + offsetQ,
-              r: cityCenter.r + offsetR,
-              type: 'city',
-              faction: await this.factionRepository.findOneBy({
-                id: faction.id,
-              }),
-              resourceFields: [],
-            }),
-          );
-        }
-      }
-
-      factionTiles += faction.cityTiles;
-
-      // Generate faction outposts
-      for (let i = 0; i < faction.outpostTiles; i++) {
-        let q, r;
-        do {
-          q = cityCenter.q + Math.floor(Math.random() * faction.spread);
-          r = cityCenter.r + Math.floor(Math.random() * faction.spread);
-        } while (isPositionOccupied(q, r));
-
-        tiles.push(
-          this.hexTileRepository.create({
-            q,
-            r,
-            type: 'outpost',
-            faction: await this.factionRepository.findOneBy({ id: faction.id }),
-            resourceFields: [],
-          }),
-        );
-
-        factionTiles++;
-      }
-
-      // Generate faction resource tiles
-      for (let i = 0; i < faction.resourceTiles; i++) {
-        let q, r;
-        do {
-          q = cityCenter.q + Math.floor(Math.random() * faction.spread * 2);
-          r = cityCenter.r + Math.floor(Math.random() * faction.spread * 2);
-        } while (isPositionOccupied(q, r));
-
-        const resources = generateResourceFields(4);
-        tiles.push(
-          this.hexTileRepository.create({
-            q,
-            r,
-            type: 'resource',
-            faction: await this.factionRepository.findOneBy({ id: faction.id }),
-            resourceFields: resources.map((type) => ({
-              type,
-              level: 0,
-              baseProduction: 10,
-              maxCapacity: 1000,
-              upgradeCost: { wood: 50, clay: 50, iron: 50, grain: 50 },
-            })),
-          }),
-        );
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        factionTiles++;
+      if (!exists) {
+        console.log(`Seeding faction: ${faction.name}`);
+        await this.factionRepository.save(faction);
+      } else {
+        console.log(`Faction ${faction.name} already exists.`);
       }
     }
+  }
 
-    // Save all tiles to the database
-    return await this.hexTileRepository.save(tiles);
+  generateMap = async (): Promise<HexTile[]> => {
+    console.log('Starting map generation...');
+    await this.seed();
+
+    const tiles: HexTile[] = [];
+    const occupiedPositions = new Set<string>();
+    const mapSize = 10000;
+
+    const databaseFactions = await this.factionRepository.find();
+    for (const faction of factions) {
+      const dbFaction = databaseFactions.find((f) => f.name === faction.name);
+      if (!dbFaction) {
+        console.warn(`Faction ${faction.name} not found, skipping.`);
+        continue;
+      }
+
+      const cityCenter = this.getRandomCityCenter(mapSize);
+
+      this.generateFactionCity(
+        faction,
+        dbFaction,
+        cityCenter,
+        tiles,
+        occupiedPositions,
+      );
+      this.generateFactionOutposts(
+        faction,
+        dbFaction,
+        cityCenter,
+        tiles,
+        occupiedPositions,
+      );
+      this.generateFactionResources(
+        faction,
+        dbFaction,
+        cityCenter,
+        tiles,
+        occupiedPositions,
+      );
+    }
+
+    console.log('Saving tiles to the database...');
+    await this.hexTileRepository.save(tiles);
+    console.log(`Map generation complete. ${tiles.length} tiles created.`);
+    return tiles;
   };
+
+  // Helper Methods
+
+  private getRandomCityCenter(mapSize: number): { q: number; r: number } {
+    return {
+      q: Math.floor(Math.random() * mapSize - mapSize / 2),
+      r: Math.floor(Math.random() * mapSize - mapSize / 2),
+    };
+  }
+
+  private generateFactionCity(
+    faction: any,
+    dbFaction: Faction,
+    cityCenter: { q: number; r: number },
+    tiles: HexTile[],
+    occupiedPositions: Set<string>,
+  ): void {
+    console.log(`Generating city for faction ${faction.name}`);
+    for (let i = 0; i < faction.cityTiles; i++) {
+      const offsetQ = Math.floor(i / 2);
+      const offsetR = i % 2 === 0 ? offsetQ : -offsetQ;
+
+      const q = cityCenter.q + offsetQ;
+      const r = cityCenter.r + offsetR;
+
+      this.createTile(q, r, 'city', dbFaction, [], tiles, occupiedPositions);
+    }
+  }
+
+  private generateFactionOutposts(
+    faction: any,
+    dbFaction: Faction,
+    cityCenter: { q: number; r: number },
+    tiles: HexTile[],
+    occupiedPositions: Set<string>,
+  ): void {
+    console.log(`Generating outposts for faction ${faction.name}`);
+    const maxRetries = 100; // Maximum retries to prevent infinite loops
+    for (let i = 0; i < faction.outpostTiles; i++) {
+      let q,
+        r,
+        retries = 0;
+      do {
+        if (retries++ > maxRetries) {
+          console.warn(
+            `Unable to find a position for outpost ${i + 1} for faction ${faction.name}.`,
+          );
+          break;
+        }
+        q = cityCenter.q + Math.floor(Math.random() * faction.spread);
+        r = cityCenter.r + Math.floor(Math.random() * faction.spread);
+      } while (this.isPositionOccupied(q, r, occupiedPositions));
+
+      if (retries <= maxRetries) {
+        this.createTile(
+          q,
+          r,
+          'outpost',
+          dbFaction,
+          [],
+          tiles,
+          occupiedPositions,
+        );
+      }
+    }
+  }
+
+  private generateFactionResources(
+    faction: any,
+    dbFaction: Faction,
+    cityCenter: { q: number; r: number },
+    tiles: HexTile[],
+    occupiedPositions: Set<string>,
+  ): void {
+    console.log(`Generating resources for faction ${faction.name}`);
+    const maxRetries = 100; // Maximum retries to prevent infinite loops
+    for (let i = 0; i < faction.resourceTiles; i++) {
+      let q,
+        r,
+        retries = 0;
+      do {
+        if (retries++ > maxRetries) {
+          console.warn(
+            `Unable to find a position for resource ${i + 1} for faction ${faction.name}.`,
+          );
+          break;
+        }
+        q = cityCenter.q + Math.floor(Math.random() * faction.spread * 2);
+        r = cityCenter.r + Math.floor(Math.random() * faction.spread * 2);
+      } while (this.isPositionOccupied(q, r, occupiedPositions));
+
+      if (retries <= maxRetries) {
+        const resourceFields = this.generateResourceFields(4).map((type) => ({
+          type,
+          level: 0,
+          baseProduction: 10,
+          maxCapacity: 1000,
+          upgradeCost: { wood: 50, clay: 50, iron: 50, grain: 50 },
+        }));
+
+        this.createTile(
+          q,
+          r,
+          'resource',
+          dbFaction,
+          resourceFields,
+          tiles,
+          occupiedPositions,
+        );
+      }
+    }
+  }
+
+  private generateResourceFields(count: number): ResourceType[] {
+    return (['wood', 'clay', 'iron', 'grain'] as ResourceType[])
+      .sort(() => 0.5 - Math.random())
+      .slice(0, count);
+  }
+
+  private createTile(
+    q: number,
+    r: number,
+    type: 'city' | 'outpost' | 'resource',
+    faction: Faction,
+    resourceFields: any[],
+    tiles: HexTile[],
+    occupiedPositions: Set<string>,
+  ): void {
+    if (!this.isPositionOccupied(q, r, occupiedPositions)) {
+      tiles.push(
+        this.hexTileRepository.create({
+          q,
+          r,
+          type,
+          faction,
+          resourceFields,
+        }),
+      );
+      this.markPositionAsOccupied(q, r, occupiedPositions);
+    }
+  }
+
+  private isPositionOccupied(
+    q: number,
+    r: number,
+    occupiedPositions: Set<string>,
+  ): boolean {
+    return occupiedPositions.has(`${q},${r}`);
+  }
+
+  private markPositionAsOccupied(
+    q: number,
+    r: number,
+    occupiedPositions: Set<string>,
+  ): void {
+    occupiedPositions.add(`${q},${r}`);
+  }
 
   async updateTileYields(
     q: number,
     r: number,
     yields: Partial<HexTile>,
   ): Promise<HexTile> {
+    console.log(`Updating yields for tile at (${q}, ${r}) with data:`, yields);
     const tile = await this.getTile(q, r);
     Object.assign(tile, yields);
-    return this.hexTileRepository.save(tile);
+    const updatedTile = await this.hexTileRepository.save(tile);
+    console.log(`Tile yields updated:`, updatedTile);
+    return updatedTile;
   }
 }
