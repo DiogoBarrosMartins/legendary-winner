@@ -162,14 +162,13 @@ export class HexTileService {
       r: Math.floor(Math.random() * mapSize - mapSize / 2),
     };
   }
-
-  private generateFactionCity(
+  private async generateFactionCity(
     faction: any,
     dbFaction: Faction,
     cityCenter: { q: number; r: number },
     tiles: HexTile[],
     occupiedPositions: Set<string>,
-  ): void {
+  ): Promise<void> {
     console.log(`Generating city for faction ${faction.name}`);
     for (let i = 0; i < faction.cityTiles; i++) {
       const offsetQ = Math.floor(i / 2);
@@ -178,46 +177,70 @@ export class HexTileService {
       const q = cityCenter.q + offsetQ;
       const r = cityCenter.r + offsetR;
 
-      this.createTile(q, r, 'city', dbFaction, [], tiles, occupiedPositions);
-    }
-  }
+      const cityTile = this.hexTileRepository.create({
+        q,
+        r,
+        type: 'city',
+        faction: dbFaction,
+      });
 
-  private generateFactionOutposts(
+      tiles.push(cityTile);
+      this.markPositionAsOccupied(q, r, occupiedPositions);
+
+      // Add to faction's cities array
+      dbFaction.cities = [
+        ...(dbFaction.cities || []),
+        { name: `City ${i + 1}`, q, r },
+      ];
+    }
+
+    await this.factionRepository.save(dbFaction); // Save faction with updated cities
+  }
+  private async generateFactionOutposts(
     faction: any,
     dbFaction: Faction,
     cityCenter: { q: number; r: number },
     tiles: HexTile[],
     occupiedPositions: Set<string>,
-  ): void {
+  ): Promise<void> {
     console.log(`Generating outposts for faction ${faction.name}`);
-    const maxRetries = 100; // Maximum retries to prevent infinite loops
+    const maxRetries = 100;
+
     for (let i = 0; i < faction.outpostTiles; i++) {
       let q,
         r,
         retries = 0;
+
       do {
         if (retries++ > maxRetries) {
-          console.warn(
-            `Unable to find a position for outpost ${i + 1} for faction ${faction.name}.`,
-          );
+          console.warn(`Unable to find a position for outpost ${i + 1}.`);
           break;
         }
+
         q = cityCenter.q + Math.floor(Math.random() * faction.spread);
         r = cityCenter.r + Math.floor(Math.random() * faction.spread);
       } while (this.isPositionOccupied(q, r, occupiedPositions));
 
       if (retries <= maxRetries) {
-        this.createTile(
+        const outpostTile = this.hexTileRepository.create({
           q,
           r,
-          'outpost',
-          dbFaction,
-          [],
-          tiles,
-          occupiedPositions,
-        );
+          type: 'outpost',
+          faction: dbFaction,
+        });
+
+        tiles.push(outpostTile);
+        this.markPositionAsOccupied(q, r, occupiedPositions);
+
+        // Add to faction's outposts array
+        dbFaction.outposts = [
+          ...(dbFaction.outposts || []),
+          { name: `Outpost ${i + 1}`, q, r },
+        ];
       }
     }
+
+    await this.factionRepository.save(dbFaction); // Save faction with updated outposts
   }
 
   private generateFactionResources(
