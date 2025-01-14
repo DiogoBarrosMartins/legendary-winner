@@ -6,11 +6,12 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { Race } from '../races/entities/race.entity';
-import { HexTile } from '../hex-grid/entities/hex-tile.entity';
+import { HexTile } from '../hex-tile/entities/hex-tile.entity';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger('UsersService');
+  factionRepository: any;
 
   constructor(
     @InjectRepository(User)
@@ -129,32 +130,59 @@ export class UsersService {
     user.race = race;
     return this.userRepository.save(user);
   }
-  async spawnPlayer(userId: string, faction: string): Promise<HexTile> {
-    // Fetch available tiles in the faction's zone
-    const availableTiles = await this.hexTileRepository.find({
-      where: { faction, zoneType: 'faction', owner: null },
-    });
-  
-    if (!availableTiles.length) {
-      // If no tiles are available, log and handle fallback
-      console.error(`No available tiles in the ${faction} zone.`);
-      throw new Error('Faction zone is overcrowded. Please try again later.');
-    }
-  
-    // Randomly select a tile from the available list
-    const randomIndex = Math.floor(Math.random() * availableTiles.length);
-    const spawnTile = availableTiles[randomIndex];
-  
+  async spawnPlayer(userId: string, factionId: string): Promise<HexTile> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-  if (!user) {
-    throw new Error('User not found.');
-  }  // Assign the user entity to the tile's owner field
-  spawnTile.owner = user;
+    if (!user) throw new Error('User not found.');
 
-    // Save and return the updated tile
+    const faction = await this.factionRepository.findOne({
+      where: { id: factionId },
+      relations: ['cities'],
+    });
+    if (!faction) throw new Error('Faction not found.');
+
+    const availableTiles = await this.hexTileRepository.find({
+      where: { faction: { id: factionId }, owner: null },
+      relations: ['faction'],
+    });
+
+    if (!availableTiles.length) {
+      throw new Error('No available tiles in the faction zone.');
+    }
+
+    const centralCityTile = faction.cities[0]; // Assume first city is central
+    const prioritizedTiles = centralCityTile
+      ? availableTiles.sort(
+          (a, b) =>
+            this.calculateDistance(
+              a.q,
+              a.r,
+              centralCityTile.q,
+              centralCityTile.r,
+            ) -
+            this.calculateDistance(
+              b.q,
+              b.r,
+              centralCityTile.q,
+              centralCityTile.r,
+            ),
+        )
+      : availableTiles;
+
+    const spawnTile = prioritizedTiles[0];
+    spawnTile.owner = user;
     return this.hexTileRepository.save(spawnTile);
   }
-  
-  
-  
+
+  private calculateDistance(
+    q1: number,
+    r1: number,
+    q2: number,
+    r2: number,
+  ): number {
+    return Math.max(
+      Math.abs(q1 - q2),
+      Math.abs(r1 - r2),
+      Math.abs(-q1 - r1 - (-q2 - r2)),
+    );
+  }
 }

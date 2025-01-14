@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-import { HexTile } from '../../hex-grid/entities/hex-tile.entity';
-
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('villages')
 export class Village {
@@ -36,7 +34,7 @@ export class Village {
   };
 
   @Column()
-  hexTileId?: string; // Link to HexTile without relation
+  hexTile: string; // Link to HexTile without relation
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   lastUpdated: Date;

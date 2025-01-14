@@ -19,9 +19,18 @@ export class RacesController {
   @ApiResponse({ status: 201, description: 'Race created successfully' })
   @Post()
   async createRace(
-    @Body() body: { name: string; traits: Record<string, any>; description?: string },
+    @Body()
+    body: {
+      name: string;
+      traits: Record<string, any>;
+      description?: string;
+    },
   ) {
-    return this.racesService.createRace(body.name, body.traits, body.description);
+    return this.racesService.createRace(
+      body.name,
+      body.traits,
+      body.description,
+    );
   }
 
   @ApiOperation({ summary: 'Retrieve all races' })
@@ -47,5 +56,4 @@ export class RacesController {
   async findOne(@Param('id') id: string) {
     return this.racesService.findOne(id);
   }
-
 }

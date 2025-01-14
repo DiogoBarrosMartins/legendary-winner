@@ -19,6 +19,8 @@ export class Resources {
   @Column({ type: 'float', default: 0 })
   gold: number;
 
-  @ManyToOne(() => Village, (village) => village.resources, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Village, (village) => village.resources, {
+    onDelete: 'CASCADE',
+  })
   village: Village;
 }

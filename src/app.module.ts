@@ -5,10 +5,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { HexGridModule } from './hex-grid/hex-grid.module';
 import { VillagesModule } from './villages/villages.module';
 import { RacesModule } from './races/races.module';
 import { ResourcesModule } from './resources/resources.module';
+import { FactionModule } from './faction/faction.module';
+import { HexTileModule } from './hex-tile/hex-tile.module';
 
 @Module({
   imports: [
@@ -35,18 +36,12 @@ import { ResourcesModule } from './resources/resources.module';
     }),
 
     AuthModule,
-
     UsersModule,
-
-    HexGridModule,
-
     VillagesModule,
-
     RacesModule,
-
     ResourcesModule,
-
-    
+    FactionModule,
+    HexTileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

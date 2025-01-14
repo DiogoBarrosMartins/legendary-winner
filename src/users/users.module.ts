@@ -3,14 +3,21 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
-import { HexGridModule } from '../hex-grid/hex-grid.module';
-import { RacesModule } from '../races/races.module';
-import { HexTile } from '../hex-grid/entities/hex-tile.entity';
+
+import { HexTile } from '../hex-tile/entities/hex-tile.entity';
+import { Faction } from '../faction/entities/faction.entity';
+import { FactionModule } from '../faction/faction.module';
+import { HexTileModule } from '../hex-tile/hex-tile.module';
+import { Race } from '../races/entities/race.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([HexTile, User]), HexGridModule, RacesModule],
-  controllers: [UsersController],
+  imports: [
+    TypeOrmModule.forFeature([User, Race, HexTile, Faction]),
+    HexTileModule,
+    FactionModule,
+  ],
   providers: [UsersService],
+  controllers: [UsersController],
   exports: [UsersService],
 })
 export class UsersModule {}

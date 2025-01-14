@@ -7,7 +7,9 @@ export class ResourcesController {
   constructor(private readonly resourceService: ResourcesService) {}
 
   @Get(':villageId')
-  async getResources(@Param('villageId') villageId: string): Promise<Resources> {
+  async getResources(
+    @Param('villageId') villageId: string,
+  ): Promise<Resources> {
     return this.resourceService.getAvailableResources(villageId);
   }
 

@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Village } from '../villages/entities/village.entity';
 import { Resources } from './entities/resource.entity';
-import { HexTile } from '../hex-grid/entities/hex-tile.entity';
+import { HexTile } from '../hex-tile/entities/hex-tile.entity';
 
 @Injectable()
 export class ResourcesService {
+  logger: Logger = new Logger('ResourcesService');
   constructor(
     @InjectRepository(Village)
     private readonly villageRepository: Repository<Village>,
@@ -26,10 +27,15 @@ export class ResourcesService {
 
     const now = new Date();
     const lastUpdated = new Date(village.lastUpdated);
-    const minutesElapsed = Math.floor((now.getTime() - lastUpdated.getTime()) / 60000);
+    const minutesElapsed = Math.floor(
+      (now.getTime() - lastUpdated.getTime()) / 60000,
+    );
 
     if (minutesElapsed > 0) {
-      const updatedResources = this.calculateResourceProduction(village, minutesElapsed);
+      const updatedResources = this.calculateResourceProduction(
+        village,
+        minutesElapsed,
+      );
 
       resources.wood += updatedResources.wood;
       resources.wheat += updatedResources.wheat;
@@ -43,7 +49,10 @@ export class ResourcesService {
     }
   }
 
-  private calculateResourceProduction(village: Village, minutesElapsed: number): Partial<Resources> {
+  private calculateResourceProduction(
+    village: Village,
+    minutesElapsed: number,
+  ): Partial<Resources> {
     const productionRates = this.calculateProductionRates(village);
 
     return {
@@ -56,6 +65,7 @@ export class ResourcesService {
 
   private calculateProductionRates(village: Village): Partial<Resources> {
     const buildings = village.resources; // Link with buildings for production rates
+    this.logger.log(buildings);
     return {
       wood: 10, // Adjust based on actual building logic
       wheat: 15,
@@ -64,7 +74,10 @@ export class ResourcesService {
     };
   }
 
-  async hasEnoughResources(villageId: string, requiredResources: Partial<Resources>): Promise<boolean> {
+  async hasEnoughResources(
+    villageId: string,
+    requiredResources: Partial<Resources>,
+  ): Promise<boolean> {
     const resources = await this.getAvailableResources(villageId);
 
     return (
@@ -75,7 +88,10 @@ export class ResourcesService {
     );
   }
 
-  async deductResources(villageId: string, resourcesToDeduct: Partial<Resources>): Promise<void> {
+  async deductResources(
+    villageId: string,
+    resourcesToDeduct: Partial<Resources>,
+  ): Promise<void> {
     const village = await this.getVillageById(villageId);
     const resources = village.resources[0];
 

@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { VillagesService } from './villages.service';
 import { VillagesController } from './villages.controller';
 import { Village } from './entities/village.entity';
-import { HexTile } from '../hex-grid/entities/hex-tile.entity';
+import { HexTile } from '../hex-tile/entities/hex-tile.entity';
 import { Resources } from '../resources/entities/resource.entity';
 
 @Module({

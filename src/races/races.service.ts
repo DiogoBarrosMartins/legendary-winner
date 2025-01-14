@@ -11,7 +11,11 @@ export class RacesService {
   ) {}
 
   // Create a race
-  async createRace(name: string, traits: Record<string, any>, description?: string): Promise<Race> {
+  async createRace(
+    name: string,
+    traits: Record<string, any>,
+    description?: string,
+  ): Promise<Race> {
     const race = this.raceRepository.create({ name, traits, description });
     return this.raceRepository.save(race);
   }
