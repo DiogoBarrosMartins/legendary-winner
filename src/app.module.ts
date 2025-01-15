@@ -10,11 +10,7 @@ import { RacesModule } from './races/races.module';
 import { ResourcesModule } from './resources/resources.module';
 import { FactionModule } from './faction/faction.module';
 import { HexTileModule } from './hex-tile/hex-tile.module';
-import { MessageModule } from './message/message.module';
 import { ChatModule } from './chat/chat.module';
-import { ChatGateway } from './chat/chat.gateway';
-import { ChatService } from './chat/chat.service';
-import { RoomService } from './chat/room.service';
 
 @Module({
   imports: [
@@ -33,12 +29,12 @@ import { RoomService } from './chat/room.service';
         username: configService.get<string>('DATABASE_USERNAME'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        autoLoadEntities: true,
         synchronize: true,
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         logging: true,
       }),
     }),
+    ChatModule,
 
     AuthModule,
     UsersModule,
@@ -47,10 +43,8 @@ import { RoomService } from './chat/room.service';
     ResourcesModule,
     FactionModule,
     HexTileModule,
-    ChatModule,
-    MessageModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ChatGateway, ChatService, RoomService],
+  providers: [AppService],
 })
 export class AppModule {}

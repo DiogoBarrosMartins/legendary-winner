@@ -10,18 +10,13 @@ import {
 import { Server, Socket } from 'socket.io';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { RoomService } from './room.service';
-
-@WebSocketGateway({ namespace: '/', cors: { origin: '*' } })
+@WebSocketGateway({ namespace: '/chatsocket', cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger('WebSocketGateway');
   @WebSocketServer()
   server: Server;
 
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly roomService: RoomService,
-  ) {
+  constructor(private readonly chatService: ChatService) {
     this.logger.log('WebSocket Gateway Initialized');
   }
 
@@ -50,7 +45,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Check permission
-      const isAllowed = await this.roomService.isPlayerAllowed(
+      const isAllowed = await this.chatService.isPlayerAllowed(
         roomIdentifier,
         userId,
       );
@@ -95,7 +90,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     },
   ): Promise<void> {
     try {
-      const isAllowed = await this.roomService.isPlayerAllowed(
+      const isAllowed = await this.chatService.isPlayerAllowed(
         roomIdentifier,
         senderId,
       );

@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MessageService } from './message.service';
-import { MessageController } from './message.controller';
 import { Message } from './entities/message.entity';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message])], // Add this line
-  controllers: [MessageController],
-  providers: [MessageService],
-  exports: [MessageService], // Export if needed in other modules
+  imports: [
+    forwardRef(() => ChatModule), // To resolve circular dependencies
+    TypeOrmModule.forFeature([Message]), // Register Message entity
+  ],
+  exports: [TypeOrmModule], // Export TypeOrmModule to make MessageRepository available
 })
 export class MessageModule {}
