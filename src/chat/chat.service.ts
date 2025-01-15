@@ -44,12 +44,18 @@ export class ChatService {
     }
   }
 
+  async getGeneralMessages(): Promise<Message[]> {
+    return this.messageRepository.find({
+      where: { id: 'f707e232-cc81-43f9-bdc1-6d32d1366504' }, // Assuming 'general' is the room ID
+      order: { createdAt: 'ASC' },
+    });
+  }
   async isPlayerAllowed(
     roomIdentifier: string,
     playerId: string,
   ): Promise<boolean> {
     const room = await this.roomRepository.findOne({
-      where: { identifier: roomIdentifier },
+      where: { id: roomIdentifier },
     });
     if (!room) {
       throw new NotFoundException(

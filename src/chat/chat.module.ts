@@ -13,6 +13,6 @@ import { Room } from './entities/room.entity';
   ],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway],
-  exports: [ChatService, ChatGateway],
+  exports: [],
 })
 export class ChatModule {}

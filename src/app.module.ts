@@ -20,7 +20,7 @@ import { ChatModule } from './chat/chat.module';
     }),
 
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
+      imports: [ConfigModule, ChatModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
@@ -34,8 +34,6 @@ import { ChatModule } from './chat/chat.module';
         logging: true,
       }),
     }),
-    ChatModule,
-
     AuthModule,
     UsersModule,
     VillagesModule,

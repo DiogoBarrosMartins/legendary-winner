@@ -6,6 +6,9 @@ services:
     container_name: backend
     ports:
       - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       - NODE_ENV=development
       - DATABASE_HOST=database
@@ -13,9 +16,7 @@ services:
       - DATABASE_USERNAME=admin
       - DATABASE_PASSWORD=password
       - DATABASE_NAME=legendary_winner
-    volumes:
-      - .:/app # Mount your local code into the container
-      - /app/node_modules # Prevent overwriting node_modules in the container
+   
     working_dir: /app
     depends_on:
       - database
