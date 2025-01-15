@@ -10,6 +10,8 @@ import { RacesModule } from './races/races.module';
 import { ResourcesModule } from './resources/resources.module';
 import { FactionModule } from './faction/faction.module';
 import { HexTileModule } from './hex-tile/hex-tile.module';
+import { MessageModule } from './message/message.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { HexTileModule } from './hex-tile/hex-tile.module';
     ResourcesModule,
     FactionModule,
     HexTileModule,
+    ChatModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
