@@ -12,6 +12,9 @@ import { FactionModule } from './faction/faction.module';
 import { HexTileModule } from './hex-tile/hex-tile.module';
 import { MessageModule } from './message/message.module';
 import { ChatModule } from './chat/chat.module';
+import { ChatGateway } from './chat/chat.gateway';
+import { ChatService } from './chat/chat.service';
+import { RoomService } from './chat/room.service';
 
 @Module({
   imports: [
@@ -48,6 +51,6 @@ import { ChatModule } from './chat/chat.module';
     MessageModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ChatGateway, ChatService, RoomService],
 })
 export class AppModule {}

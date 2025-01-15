@@ -1,14 +1,27 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateRoomDto {
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'The name of the room',
+    example: 'General Room',
+  })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @IsOptional()
-  @IsBoolean()
-  isPrivate?: boolean;
+  @ApiProperty({
+    description: 'The unique identifier for the room',
+    example: 'general-room',
+  })
+  @IsString()
+  @IsOptional() // Optional because it might be generated server-side
+  identifier?: string;
 
+  @ApiProperty({
+    description: 'Allowed player IDs for this room (JSON array)',
+    example: ['player1', 'player2'],
+  })
   @IsOptional()
-  allowedUsers?: string[];
+  allowedPlayerIds?: string[];
 }

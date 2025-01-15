@@ -15,13 +15,6 @@ export class ChatService {
     return this.messageRepository.save(message);
   }
 
-  async getMessagesByFaction(factionId: string): Promise<Message[]> {
-    return this.messageRepository.find({
-      where: { factionId },
-      order: { createdAt: 'ASC' },
-    });
-  }
-
   async getPrivateMessages(
     senderId: string,
     receiverId: string,
