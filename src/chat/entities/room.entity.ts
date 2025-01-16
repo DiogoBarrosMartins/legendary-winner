@@ -13,11 +13,9 @@ export class Room {
   @Column()
   name: string;
 
-  @Column({ type: 'varchar', nullable: false, default: 'default_identifier' })
-  identifier: string;
-
   @Column({ type: 'jsonb', default: [] })
   allowedPlayerIds: string[];
+
   @CreateDateColumn()
   createdAt: Date;
 }

@@ -33,4 +33,5 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Message from ${payload.author}: ${payload.body}`);
     this.server.emit('chat', payload); // Broadcast the message to all clients
   }
+  
 }

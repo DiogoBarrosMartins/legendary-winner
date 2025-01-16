@@ -46,7 +46,7 @@ export class ChatService {
 
   async getGeneralMessages(): Promise<Message[]> {
     return this.messageRepository.find({
-      where: { id: 'f707e232-cc81-43f9-bdc1-6d32d1366504' }, // Assuming 'general' is the room ID
+      where: { roomId: 'f707e232-cc81-43f9-bdc1-6d32d1366504' }, // Assuming 'general' is the room ID
       order: { createdAt: 'ASC' },
     });
   }
