@@ -8,10 +8,22 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  constructor(username: string, password: string, email: string) {
+  constructor(
+    username: string,
+    password: string,
+    email: string,
+    isActive?: boolean,
+    refreshToken?: string,
+    resetToken?: string,
+    raceId?: string,
+  ) {
     this.username = username;
     this.password = password;
     this.email = email;
+    this.isActive = isActive;
+    this.refreshToken = refreshToken;
+    this.resetToken = resetToken;
+    this.raceId = raceId;
   }
 
   @ApiProperty({
@@ -65,4 +77,21 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   resetToken?: string;
+
+  @ApiProperty({
+    description: 'Race ID of the user (optional)',
+    example: '1234abcd',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  raceId?: string;
+
+  @ApiProperty({
+    description: 'List of claimed tiles by the user (optional)',
+    type: [String],
+    required: false,
+  })
+  @IsOptional()
+  claimedTiles?: string[];
 }

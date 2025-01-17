@@ -44,9 +44,28 @@ export class ChatService {
     }
   }
 
+  async ensureGeneralRoomExists(): Promise<Room> {
+    // Check if the 'general' room exists
+    let generalRoom = await this.roomRepository.findOne({
+      where: { name: 'general' },
+    });
+
+    // If not, create the 'general' room
+    if (!generalRoom) {
+      generalRoom = this.roomRepository.create({ name: 'general' });
+      generalRoom = await this.roomRepository.save(generalRoom);
+    }
+
+    return generalRoom;
+  }
+
   async getGeneralMessages(): Promise<Message[]> {
+    // Ensure the 'general' room exists and retrieve it
+    const generalRoom = await this.ensureGeneralRoomExists();
+
+    // Fetch messages using the resolved roomId
     return this.messageRepository.find({
-      where: { roomId: 'f707e232-cc81-43f9-bdc1-6d32d1366504' }, // Assuming 'general' is the room ID
+      where: { roomId: generalRoom.id },
       order: { createdAt: 'ASC' },
     });
   }

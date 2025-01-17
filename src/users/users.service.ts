@@ -32,32 +32,39 @@ export class UsersService {
     }
     return user;
   }
-  async create(userDto: CreateUserDto): Promise<User> {
+
+  // users.service.ts
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    this.logger.log(`Creating user: ${createUserDto.username}`);
+
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    const race = createUserDto.raceId
+      ? await this.raceRepository.findOne({
+          where: { id: createUserDto.raceId },
+        })
+      : null;
+
+    const claimedTiles = createUserDto.claimedTiles
+      ? await this.hexTileRepository.findByIds(createUserDto.claimedTiles)
+      : [];
+
+    // Create the new user entity
+    const newUser = this.userRepository.create({
+      ...createUserDto,
+      password: hashedPassword, // Correctly passing the hashed password
+      race,
+      isActive: createUserDto.isActive ?? true, // Default to true if not provided
+      claimedTiles,
+    });
+
     try {
-      this.logger.log(`Starting user creation for: ${JSON.stringify(userDto)}`);
-
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(userDto.password, 10);
-      this.logger.log(`Hashed password: ${hashedPassword}`);
-
-      // Create user entity
-      const newUser = this.userRepository.create({
-        ...userDto,
-        password: hashedPassword,
-      });
-      this.logger.log(`User entity created: ${JSON.stringify(newUser)}`);
-
-      // Save user to the database
-      const savedUser = await this.userRepository.save(newUser);
-      this.logger.log(`User saved to database: ${JSON.stringify(savedUser)}`);
-
-      return savedUser;
+      // Save the new user to the database
+      return await this.userRepository.save(newUser);
     } catch (error) {
-      this.logger.error(
-        `Error during user creation: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+      this.logger.error('Error creating user:', error.stack);
+      throw new Error('Failed to create user');
     }
   }
 

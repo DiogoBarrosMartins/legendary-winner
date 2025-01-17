@@ -40,7 +40,7 @@ export class User {
   resetToken: string;
 
   @OneToMany(() => HexTile, (tile) => tile.owner)
-  claimedTiles: HexTile[]; // Tiles claimed by the player
+  claimedTiles?: HexTile[]; // Tiles claimed by the player
 
   @ManyToOne(() => Race, { nullable: true })
   race: Race; // Player's chosen race

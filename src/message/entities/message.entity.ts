@@ -13,6 +13,9 @@ export class Message {
   @Column()
   senderId: string;
 
+  @Column()
+  senderName: string; // Added field for the sender's name
+
   @Column({ nullable: true }) // Nullable for global messages
   receiverId?: string;
 
