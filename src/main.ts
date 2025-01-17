@@ -15,6 +15,12 @@ async function bootstrap() {
     operationIdFactory: (_controllerKey: string, methodKey: string) =>
       methodKey,
   };
+  // Enable CORS
+  app.enableCors({
+    origin: ['http://localhost:8081'], // Adjust this to match the frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+  });
 
   const config = new DocumentBuilder()
     .addSecurity('bearer', {
