@@ -2,34 +2,42 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
-  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { HexTile } from '../../hex-tile/entities/hex-tile.entity';
 
 @Entity('factions')
 export class Faction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column()
   name: string;
 
-  @Column('text')
+  @Column({ nullable: true })
   description: string;
-
+  // New column to track influence points.
   @Column({ default: 0 })
   influencePoints: number;
 
-  @OneToMany(() => HexTile, (hexTile) => hexTile.faction)
-  tiles: HexTile[];
+  @Column({ type: 'jsonb', nullable: true })
+  cities: {
+    name: string;
+    q: number;
+    r: number;
+    productionRates?: {
+      wood: number;
+      wheat: number;
+      stone: number;
+      gold: number;
+    };
+  }[];
 
-  @Column('simple-json', { default: [] })
-  cities: { name: string; q: number; r: number }[]; // Central cities for faction
+  @Column({ type: 'jsonb', nullable: true })
+  outposts: { name: string; q: number; r: number }[];
 
-  @Column('simple-json', { default: [] })
-  outposts: { name: string; q: number; r: number }[]; // Outposts providing reinforcements
+  @Column({ type: 'jsonb', nullable: true })
+  resourceVillages: { name: string; q: number; r: number }[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -25,44 +25,45 @@ import { UpdateRoomDto } from './dto/update-room.dto';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @ApiOperation({ summary: 'Create a new room' }) // Describes the endpoint
-  @ApiBody({ type: CreateRoomDto }) // Specifies the body structure
-  @Post()
+  @ApiOperation({ summary: 'Create a new chat room' })
+  @ApiBody({ type: CreateRoomDto })
+  @Post('rooms')
   async createRoom(@Body() createRoomDto: CreateRoomDto) {
-    return this.chatService.create(createRoomDto);
+    return await this.chatService.create(createRoomDto);
   }
 
-  @ApiOperation({ summary: 'Get all rooms' }) // Describes the endpoint
-  @Get()
+  @ApiOperation({ summary: 'Retrieve all chat rooms' })
+  @Get('rooms')
   async getAllRooms() {
-    return this.chatService.findAll();
+    return await this.chatService.findAll();
   }
 
-  @ApiOperation({ summary: 'Get room details by ID' }) // Describes the endpoint
-  @ApiParam({ name: 'id', type: String, description: 'Room ID' }) // Parameter description
-  @Get(':id')
+  @ApiOperation({ summary: 'Retrieve a chat room by ID' })
+  @ApiParam({ name: 'id', type: String, description: 'Room ID' })
+  @Get('rooms/:id')
   async getRoomById(@Param('id') id: string) {
-    return this.chatService.findOne(id);
+    return await this.chatService.findOne(id);
   }
 
-  @ApiOperation({ summary: 'Update room details by ID' }) // Describes the endpoint
-  @ApiParam({ name: 'id', type: String, description: 'Room ID' }) // Parameter description
-  @ApiBody({ type: UpdateRoomDto }) // Specifies the body structure
-  @Patch(':id')
+  @ApiOperation({ summary: 'Update a chat room' })
+  @ApiParam({ name: 'id', type: String, description: 'Room ID' })
+  @ApiBody({ type: UpdateRoomDto })
+  @Patch('rooms/:id')
   async updateRoom(
     @Param('id') id: string,
     @Body() updateRoomDto: UpdateRoomDto,
   ) {
-    return this.chatService.update(id, updateRoomDto);
+    return await this.chatService.update(id, updateRoomDto);
   }
 
-  @ApiOperation({ summary: 'Delete a room by ID' }) // Describes the endpoint
-  @ApiParam({ name: 'id', type: String, description: 'Room ID' }) // Parameter description
-  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a chat room' })
+  @ApiParam({ name: 'id', type: String, description: 'Room ID' })
+  @Delete('rooms/:id')
   async deleteRoom(@Param('id') id: string) {
-    return this.chatService.delete(id);
+    return await this.chatService.delete(id);
   }
-  @Get('private')
+
+  @ApiOperation({ summary: 'Retrieve private messages between two users' })
   @ApiQuery({ name: 'senderId', type: String, description: 'Sender ID' })
   @ApiQuery({ name: 'receiverId', type: String, description: 'Receiver ID' })
   @ApiResponse({
@@ -80,10 +81,11 @@ export class ChatController {
       ],
     },
   })
+  @Get('private')
   async getPrivateMessages(
     @Query('senderId') senderId: string,
     @Query('receiverId') receiverId: string,
   ) {
-    return this.chatService.getPrivateMessages(senderId, receiverId);
+    return await this.chatService.getPrivateMessages(senderId, receiverId);
   }
 }

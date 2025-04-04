@@ -1,7 +1,11 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Message } from '../message/entities/message.entity';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Room } from './entities/room.entity';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
@@ -16,12 +20,18 @@ export class ChatService {
   ) {}
 
   async create(createRoomDto: CreateRoomDto): Promise<Room> {
-    const room = this.roomRepository.create(createRoomDto);
-    return this.roomRepository.save(room);
+    try {
+      const room = this.roomRepository.create(createRoomDto);
+      return await this.roomRepository.save(room);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to create room.' + error.message,
+      );
+    }
   }
 
   async findAll(): Promise<Room[]> {
-    return this.roomRepository.find();
+    return await this.roomRepository.find();
   }
 
   async findOne(id: string): Promise<Room> {
@@ -45,34 +55,41 @@ export class ChatService {
   }
 
   async ensureGeneralRoomExists(): Promise<Room> {
-    // Check if the 'general' room exists
     let generalRoom = await this.roomRepository.findOne({
       where: { name: 'general' },
     });
-
-    // If not, create the 'general' room
     if (!generalRoom) {
       generalRoom = this.roomRepository.create({ name: 'general' });
       generalRoom = await this.roomRepository.save(generalRoom);
     }
-
     return generalRoom;
   }
 
   async getGeneralMessages(): Promise<Message[]> {
-    // Ensure the 'general' room exists and retrieve it
+    // Ensure the 'general' room exists
     const generalRoom = await this.ensureGeneralRoomExists();
 
-    // Fetch messages using the resolved roomId
-    return this.messageRepository.find({
+    // Fetch the 50 newest messages in descending order
+    const newestFirst = await this.messageRepository.find({
       where: { roomId: generalRoom.id },
-      order: { createdAt: 'ASC' },
+      order: { createdAt: 'DESC' },
+      take: 50,
     });
+
+    // Reverse so they're oldest -> newest
+    return newestFirst.reverse();
   }
+
   async isPlayerAllowed(
     roomIdentifier: string,
     playerId: string,
   ): Promise<boolean> {
+    // Allow everyone in the public "general" room
+    if (roomIdentifier === 'general') {
+      return true;
+    }
+
+    // For all other rooms, check if the user is allowed
     const room = await this.roomRepository.findOne({
       where: { id: roomIdentifier },
     });
@@ -83,9 +100,10 @@ export class ChatService {
     }
     return room.allowedPlayerIds.includes(playerId);
   }
+
   async saveMessage(messageData: Partial<Message>): Promise<Message> {
     const message = this.messageRepository.create(messageData);
-    return this.messageRepository.save(message);
+    return await this.messageRepository.save(message);
   }
 
   async getPrivateMessages(
@@ -95,7 +113,7 @@ export class ChatService {
     return this.messageRepository.find({
       where: [
         { senderId, receiverId },
-        { senderId: receiverId, receiverId: senderId }, // Both directions
+        { senderId: receiverId, receiverId: senderId },
       ],
       order: { createdAt: 'ASC' },
     });

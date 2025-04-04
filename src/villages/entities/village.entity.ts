@@ -9,10 +9,10 @@ export class Village {
   name: string;
 
   @Column()
-  q: number; // Add q coordinate
+  q: number; // Axial coordinate q
 
   @Column()
-  r: number; // Add r coordinate
+  r: number; // Axial coordinate r
 
   @Column({ type: 'jsonb', default: [] })
   buildings?: { type: string; level: number }[]; // Example: [{ type: 'farm', level: 1 }]
@@ -34,7 +34,7 @@ export class Village {
   };
 
   @Column()
-  hexTile: string; // Link to HexTile without relation
+  hexTile: string; // Link to HexTile (store the HexTile ID)
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   lastUpdated: Date;

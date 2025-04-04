@@ -53,4 +53,8 @@ export class FactionController {
   async getFactionTerritory(@Param('id') factionId: string) {
     return this.factionService.getFactionTerritory(factionId);
   }
+  @Post(':id/spawn-villages')
+  async spawnFactionVillages(@Param('id') factionId: string) {
+    return this.factionService.spawnFactionVillages(factionId);
+  }
 }

@@ -3,19 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Village } from './entities/village.entity';
 import { HexTile } from '../hex-tile/entities/hex-tile.entity';
-import { Resource, Resources } from '../resources/entities/resource.entity';
 
 @Injectable()
 export class VillagesService {
-  logger: Logger = new Logger('VillagesService');
+  private readonly logger = new Logger('VillagesService');
   constructor(
     @InjectRepository(Village)
     private readonly villageRepository: Repository<Village>,
     @InjectRepository(HexTile)
     private readonly hexTileRepository: Repository<HexTile>,
-    @InjectRepository(HexTile)
-    private readonly resourcesRepository: Repository<Resource>,
   ) {}
+
   async createVillage(tileId: string, name: string): Promise<Village> {
     const hexTile = await this.hexTileRepository.findOne({
       where: { id: tileId },
@@ -32,12 +30,12 @@ export class VillagesService {
       resources: { wood: 1000, wheat: 1000, stone: 500, gold: 500 },
       productionRates: { wood: 10, wheat: 15, stone: 5, gold: 3 },
       lastUpdated: new Date(),
+      buildings: [],
     });
 
     return this.villageRepository.save(village);
   }
 
-  // Upgrade a building in the village
   async upgradeBuilding(
     villageId: string,
     buildingType: string,
@@ -54,121 +52,99 @@ export class VillagesService {
     return this.villageRepository.save(village);
   }
 
-  // Collect resources
   async collectResources(villageId: string): Promise<Village> {
     const village = await this.getVillageById(villageId);
-
-    // Calculate resources based on production rates
-    Object.keys(village.productionRates).forEach((resource) => {
+    // Add production rates to resources for each resource type.
+    for (const resource of Object.keys(village.productionRates)) {
       village.resources[resource] += village.productionRates[resource];
-    });
-
+    }
     return this.villageRepository.save(village);
   }
-  async getAvailableResources(villageId: string): Promise<Resources> {
+
+  async getAvailableResources(
+    villageId: string,
+  ): Promise<{ wood: number; wheat: number; stone: number; gold: number }> {
     const village = await this.getVillageById(villageId);
-    return village.resources[0]; // Assuming one resource entity per village
+    return village.resources;
   }
 
-  async updateVillageResources(villageId: string): Promise<void> {
+  async updateVillageResources(villageId: string): Promise<Village> {
     const village = await this.getVillageById(villageId);
-    const resources = village.resources[0];
-
     const now = new Date();
     const lastUpdated = new Date(village.lastUpdated);
     const minutesElapsed = Math.floor(
       (now.getTime() - lastUpdated.getTime()) / 60000,
     );
-
     if (minutesElapsed > 0) {
-      const updatedResources = this.calculateResourceProduction(
+      const production = this.calculateResourceProduction(
         village,
         minutesElapsed,
       );
-
-      resources.wood += updatedResources.wood;
-      resources.wheat += updatedResources.wheat;
-      resources.stone += updatedResources.stone;
-      resources.gold += updatedResources.gold;
-
-      await this.resourcesRepository.save(resources);
-
+      village.resources.wood += production.wood;
+      village.resources.wheat += production.wheat;
+      village.resources.stone += production.stone;
+      village.resources.gold += production.gold;
       village.lastUpdated = now;
-      await this.villageRepository.save(village);
+      return this.villageRepository.save(village);
     }
+    return village;
   }
 
   private calculateResourceProduction(
     village: Village,
     minutesElapsed: number,
-  ): Partial<Resources> {
-    const productionRates = this.calculateProductionRates(village);
-
+  ): { wood: number; wheat: number; stone: number; gold: number } {
+    const rates = village.productionRates;
     return {
-      wood: productionRates.wood * minutesElapsed,
-      wheat: productionRates.wheat * minutesElapsed,
-      stone: productionRates.stone * minutesElapsed,
-      gold: productionRates.gold * minutesElapsed,
-    };
-  }
-
-  private calculateProductionRates(village: Village): Partial<Resources> {
-    const buildings = village.resources; // Link with buildings for production rates
-    this.logger.log(buildings);
-    return {
-      wood: 10, // Adjust based on actual building logic
-      wheat: 15,
-      stone: 5,
-      gold: 3,
+      wood: rates.wood * minutesElapsed,
+      wheat: rates.wheat * minutesElapsed,
+      stone: rates.stone * minutesElapsed,
+      gold: rates.gold * minutesElapsed,
     };
   }
 
   async hasEnoughResources(
     villageId: string,
-    requiredResources: Partial<Resources>,
+    required: { wood?: number; wheat?: number; stone?: number; gold?: number },
   ): Promise<boolean> {
-    const resources = await this.getAvailableResources(villageId);
-
+    const village = await this.getVillageById(villageId);
     return (
-      resources.wood >= (requiredResources.wood || 0) &&
-      resources.wheat >= (requiredResources.wheat || 0) &&
-      resources.stone >= (requiredResources.stone || 0) &&
-      resources.gold >= (requiredResources.gold || 0)
+      village.resources.wood >= (required.wood || 0) &&
+      village.resources.wheat >= (required.wheat || 0) &&
+      village.resources.stone >= (required.stone || 0) &&
+      village.resources.gold >= (required.gold || 0)
     );
   }
 
   async deductResources(
     villageId: string,
-    resourcesToDeduct: Partial<Resources>,
-  ): Promise<void> {
+    cost: { wood?: number; wheat?: number; stone?: number; gold?: number },
+  ): Promise<Village> {
     const village = await this.getVillageById(villageId);
-    const resources = village.resources[0];
-
-    if (resourcesToDeduct.wood && resources.wood < resourcesToDeduct.wood) {
+    if (cost.wood && village.resources.wood < cost.wood) {
       throw new Error('Not enough wood.');
     }
-    if (resourcesToDeduct.wheat && resources.wheat < resourcesToDeduct.wheat) {
+    if (cost.wheat && village.resources.wheat < cost.wheat) {
       throw new Error('Not enough wheat.');
     }
-    if (resourcesToDeduct.stone && resources.stone < resourcesToDeduct.stone) {
+    if (cost.stone && village.resources.stone < cost.stone) {
       throw new Error('Not enough stone.');
     }
-    if (resourcesToDeduct.gold && resources.gold < resourcesToDeduct.gold) {
+    if (cost.gold && village.resources.gold < cost.gold) {
       throw new Error('Not enough gold.');
     }
 
-    resources.wood -= resourcesToDeduct.wood || 0;
-    resources.wheat -= resourcesToDeduct.wheat || 0;
-    resources.stone -= resourcesToDeduct.stone || 0;
-    resources.gold -= resourcesToDeduct.gold || 0;
+    village.resources.wood -= cost.wood || 0;
+    village.resources.wheat -= cost.wheat || 0;
+    village.resources.stone -= cost.stone || 0;
+    village.resources.gold -= cost.gold || 0;
 
-    await this.resourcesRepository.save(resources);
+    return this.villageRepository.save(village);
   }
 
   async getVillageById(villageId: string): Promise<Village> {
     const village = await this.villageRepository.findOne({
       where: { id: villageId },
-      relations: ['resources'],
     });
     if (!village) {
       throw new NotFoundException('Village not found.');
